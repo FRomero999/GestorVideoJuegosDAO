@@ -30,7 +30,5 @@ public class Main {
         j.setUser(u);
         j.setUser_id(u.getId());
         new GameDAO(JdbcUtils.getCon()).save(j);
-
-
     }
 }
