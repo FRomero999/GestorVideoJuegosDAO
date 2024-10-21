@@ -5,7 +5,9 @@ import org.example.models.User;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class GameDAO implements DAO<Game> {
 
@@ -16,7 +18,31 @@ public class GameDAO implements DAO<Game> {
 
     @Override
     public List<Game> findAll() {
-        return List.of();
+        List<Game> games = new ArrayList<>();
+
+        String query = "SELECT * FROM games";
+
+        try (Statement st = con.createStatement();
+             ResultSet rs = st.executeQuery(query)) {
+
+            while (rs.next()) {
+                Game game = new Game(
+                        rs.getInt(1),         // id
+                        rs.getString(2),      // title
+                        rs.getString(3),      // platform
+                        rs.getInt(4),         // year
+                        rs.getString(5),      // description
+                        rs.getInt(6)          // user_id
+                );
+                game.setUser(new UserDAO(con).findById(game.getUser_id()));  // Asociar el usuario
+                games.add(game);  // Añadir el juego a la lista
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        return games;
     }
 
     public List<Game> findByUser(User user) {
@@ -96,11 +122,52 @@ public class GameDAO implements DAO<Game> {
 
     @Override
     public void update(Game game) {
+        String query = "UPDATE games SET title = ?, platform = ?, year = ?, description = ?, user_id = ? WHERE id = ?";
 
+        try (PreparedStatement pst = con.prepareStatement(query)) {
+            pst.setString(1, game.getTitle());
+            pst.setString(2, game.getPlatform());
+            pst.setInt(3, game.getYear());
+            pst.setString(4, game.getDescription());
+            pst.setInt(5, game.getUser_id());
+            pst.setInt(6, game.getId());
+
+            pst.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public void delete(Game game) {
+        String query = "DELETE FROM games WHERE id = ?";
+
+        try (PreparedStatement pst = con.prepareStatement(query)) {
+            pst.setInt(1, game.getId());
+            pst.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public Set<String> getPlatforms(){
+
+        var salida = new HashSet<String>();
+
+        try( Statement st = con.createStatement()){
+            ResultSet rs = st.executeQuery("select distinct games.platform from ad.games order by platform asc");
+            while(rs.next()){
+                salida.add(rs.getString(1));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        return salida;
 
     }
+
+
 }
